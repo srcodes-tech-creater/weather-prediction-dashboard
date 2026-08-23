@@ -8,15 +8,6 @@ from sklearn.linear_model import LinearRegression
 
 
 # =====================================
-# LOAD API KEY
-# =====================================
-
-load_dotenv()
-
-API_KEY = os.getenv("OPENWEATHER_API_KEY")
-
-
-# =====================================
 # PAGE CONFIGURATION
 # =====================================
 
@@ -28,27 +19,44 @@ st.set_page_config(
 
 
 # =====================================
+# LOAD API KEY
+# =====================================
+
+load_dotenv()
+
+# First try Streamlit Cloud Secrets
+try:
+    API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+except:
+    # If not deployed, use local .env file
+    API_KEY = os.getenv("OPENWEATHER_API_KEY")
+
+
+# =====================================
 # CUSTOM DESIGN
 # =====================================
 
-st.markdown("""
-<style>
+st.markdown(
+    """
+    <style>
 
-.main-title {
-    text-align: center;
-    font-size: 45px;
-    font-weight: bold;
-}
+    .main-title {
+        text-align: center;
+        font-size: 45px;
+        font-weight: bold;
+    }
 
-.subtitle {
-    text-align: center;
-    font-size: 18px;
-    color: gray;
-    margin-bottom: 30px;
-}
+    .subtitle {
+        text-align: center;
+        font-size: 18px;
+        color: gray;
+        margin-bottom: 30px;
+    }
 
-</style>
-""", unsafe_allow_html=True)
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # =====================================
@@ -84,12 +92,24 @@ search_button = st.sidebar.button(
 
 
 # =====================================
+# CHECK API KEY
+# =====================================
+
+if not API_KEY:
+
+    st.error(
+        "❌ OpenWeather API key not found. "
+        "Please configure OPENWEATHER_API_KEY in Streamlit Secrets."
+    )
+
+
+# =====================================
 # MAIN APPLICATION
 # =====================================
 
-if search_button:
+elif search_button:
 
-    if not city:
+    if not city.strip():
 
         st.warning("⚠️ Please enter a city name.")
 
@@ -106,7 +126,7 @@ if search_button:
             )
 
             current_weather_params = {
-                "q": city,
+                "q": city.strip(),
                 "appid": API_KEY,
                 "units": "metric"
             }
@@ -114,11 +134,15 @@ if search_button:
             current_response = requests.get(
                 current_weather_url,
                 params=current_weather_params,
-                timeout=10
+                timeout=15
             )
 
             current_data = current_response.json()
 
+
+            # =====================================
+            # SUCCESSFUL WEATHER RESPONSE
+            # =====================================
 
             if current_response.status_code == 200:
 
@@ -126,7 +150,8 @@ if search_button:
                 country = current_data["sys"]["country"]
 
                 st.success(
-                    f"📍 Showing weather data for {city_name}, {country}"
+                    f"📍 Showing weather data for "
+                    f"{city_name}, {country}"
                 )
 
 
@@ -178,13 +203,11 @@ if search_button:
                 detail_col1, detail_col2 = st.columns(2)
 
                 with detail_col1:
-
                     st.info(
                         f"🌦️ **Condition:** {condition}"
                     )
 
                 with detail_col2:
-
                     st.info(
                         f"🤗 **Feels Like:** {feels_like} °C"
                     )
@@ -203,7 +226,7 @@ if search_button:
                 )
 
                 forecast_params = {
-                    "q": city,
+                    "q": city.strip(),
                     "appid": API_KEY,
                     "units": "metric"
                 }
@@ -211,11 +234,15 @@ if search_button:
                 forecast_response = requests.get(
                     forecast_url,
                     params=forecast_params,
-                    timeout=10
+                    timeout=15
                 )
 
                 forecast_data = forecast_response.json()
 
+
+                # =====================================
+                # FORECAST SUCCESS
+                # =====================================
 
                 if forecast_response.status_code == 200:
 
@@ -227,15 +254,25 @@ if search_button:
 
                             "Date & Time": item["dt_txt"],
 
-                            "Temperature (°C)": item["main"]["temp"],
+                            "Temperature (°C)": (
+                                item["main"]["temp"]
+                            ),
 
-                            "Humidity (%)": item["main"]["humidity"],
+                            "Humidity (%)": (
+                                item["main"]["humidity"]
+                            ),
 
-                            "Pressure (hPa)": item["main"]["pressure"],
+                            "Pressure (hPa)": (
+                                item["main"]["pressure"]
+                            ),
 
-                            "Weather": item["weather"][0]["description"],
+                            "Weather": (
+                                item["weather"][0]["description"]
+                            ),
 
-                            "Wind Speed (m/s)": item["wind"]["speed"]
+                            "Wind Speed (m/s)": (
+                                item["wind"]["speed"]
+                            )
                         })
 
 
@@ -253,7 +290,7 @@ if search_button:
 
 
                     # =====================================
-                    # TEMPERATURE CHART
+                    # TEMPERATURE FORECAST
                     # =====================================
 
                     st.subheader(
@@ -275,48 +312,52 @@ if search_button:
 
                     st.header("📊 Data Science Analysis")
 
-                    min_temp = forecast_df[
-                        "Temperature (°C)"
-                    ].min()
+                    min_temp = (
+                        forecast_df[
+                            "Temperature (°C)"
+                        ].min()
+                    )
 
-                    max_temp = forecast_df[
-                        "Temperature (°C)"
-                    ].max()
+                    max_temp = (
+                        forecast_df[
+                            "Temperature (°C)"
+                        ].max()
+                    )
 
-                    avg_temp = forecast_df[
-                        "Temperature (°C)"
-                    ].mean()
+                    avg_temp = (
+                        forecast_df[
+                            "Temperature (°C)"
+                        ].mean()
+                    )
 
-                    avg_humidity = forecast_df[
-                        "Humidity (%)"
-                    ].mean()
+                    avg_humidity = (
+                        forecast_df[
+                            "Humidity (%)"
+                        ].mean()
+                    )
 
 
                     stat1, stat2, stat3, stat4 = st.columns(4)
 
                     with stat1:
-
                         st.metric(
                             "Minimum Temperature",
                             f"{min_temp:.1f} °C"
                         )
 
                     with stat2:
-
                         st.metric(
                             "Maximum Temperature",
                             f"{max_temp:.1f} °C"
                         )
 
                     with stat3:
-
                         st.metric(
                             "Average Temperature",
                             f"{avg_temp:.1f} °C"
                         )
 
                     with stat4:
-
                         st.metric(
                             "Average Humidity",
                             f"{avg_humidity:.1f} %"
@@ -324,33 +365,42 @@ if search_button:
 
 
                     # =====================================
-                    # TREND ANALYSIS
+                    # WEATHER TREND ANALYSIS
                     # =====================================
 
-                    st.subheader("📈 Weather Trend Insight")
+                    st.subheader(
+                        "📈 Weather Trend Insight"
+                    )
 
-                    first_temp = forecast_df[
-                        "Temperature (°C)"
-                    ].iloc[0]
+                    first_temp = (
+                        forecast_df[
+                            "Temperature (°C)"
+                        ].iloc[0]
+                    )
 
-                    last_temp = forecast_df[
-                        "Temperature (°C)"
-                    ].iloc[-1]
+                    last_temp = (
+                        forecast_df[
+                            "Temperature (°C)"
+                        ].iloc[-1]
+                    )
 
-                    temp_difference = last_temp - first_temp
+                    temp_difference = (
+                        last_temp - first_temp
+                    )
 
 
                     if temp_difference > 1:
 
                         st.success(
-                            f"📈 The temperature is expected to increase "
-                            f"by approximately {temp_difference:.1f} °C."
+                            f"📈 Temperature is expected to increase "
+                            f"by approximately "
+                            f"{temp_difference:.1f} °C."
                         )
 
                     elif temp_difference < -1:
 
                         st.info(
-                            f"📉 The temperature is expected to decrease "
+                            f"📉 Temperature is expected to decrease "
                             f"by approximately "
                             f"{abs(temp_difference):.1f} °C."
                         )
@@ -358,7 +408,7 @@ if search_button:
                     else:
 
                         st.warning(
-                            "➡️ The temperature is expected to remain relatively stable."
+                            "➡️ Temperature is expected to remain relatively stable."
                         )
 
 
@@ -366,7 +416,9 @@ if search_button:
                     # HUMIDITY CHART
                     # =====================================
 
-                    st.subheader("💧 Humidity Forecast Trend")
+                    st.subheader(
+                        "💧 Humidity Forecast Trend"
+                    )
 
                     st.line_chart(
                         forecast_df.set_index(
@@ -386,8 +438,8 @@ if search_button:
                     )
 
                     st.write(
-                        "A Linear Regression model analyzes the temperature "
-                        "trend and estimates future temperature values."
+                        "Linear Regression analyzes the temperature trend "
+                        "and estimates future temperature values."
                     )
 
 
@@ -397,7 +449,9 @@ if search_button:
                         len(forecast_df)
                     )
 
-                    X = forecast_df[["Time_Index"]]
+                    X = forecast_df[
+                        ["Time_Index"]
+                    ]
 
                     y = forecast_df[
                         "Temperature (°C)"
@@ -411,7 +465,9 @@ if search_button:
                     model.fit(X, y)
 
 
-                    # Next prediction
+                    # =====================================
+                    # NEXT TEMPERATURE PREDICTION
+                    # =====================================
 
                     next_time = pd.DataFrame(
                         {
@@ -421,22 +477,20 @@ if search_button:
                         }
                     )
 
-                    predicted_temperature = model.predict(
-                        next_time
-                    )[0]
+                    predicted_temperature = (
+                        model.predict(next_time)[0]
+                    )
 
 
                     pred1, pred2 = st.columns(2)
 
                     with pred1:
-
                         st.metric(
                             "🔮 Predicted Next Temperature",
                             f"{predicted_temperature:.2f} °C"
                         )
 
                     with pred2:
-
                         st.metric(
                             "🤖 Model",
                             "Linear Regression"
@@ -456,14 +510,18 @@ if search_button:
                         }
                     )
 
-                    future_predictions = model.predict(
-                        future_indices
+                    future_predictions = (
+                        model.predict(
+                            future_indices
+                        )
                     )
 
 
-                    last_date = forecast_df[
-                        "Date & Time"
-                    ].iloc[-1]
+                    last_date = (
+                        forecast_df[
+                            "Date & Time"
+                        ].iloc[-1]
+                    )
 
 
                     future_dates = pd.date_range(
@@ -485,7 +543,7 @@ if search_button:
 
 
                     # =====================================
-                    # ML CHART
+                    # ML PREDICTION CHART
                     # =====================================
 
                     st.subheader(
@@ -514,10 +572,14 @@ if search_button:
                             ]
                         )
                         +
-                        [None] * len(prediction_df),
+                        [None] * len(
+                            prediction_df
+                        ),
 
                         "ML Prediction":
-                        [None] * len(forecast_df)
+                        [None] * len(
+                            forecast_df
+                        )
                         +
                         list(
                             prediction_df[
@@ -535,7 +597,7 @@ if search_button:
 
 
                     # =====================================
-                    # FORECAST DATA
+                    # DETAILED FORECAST DATA
                     # =====================================
 
                     st.divider()
@@ -554,30 +616,61 @@ if search_button:
                     )
 
 
+                # =====================================
+                # FORECAST API ERROR
+                # =====================================
+
                 else:
 
+                    error_message = (
+                        forecast_data.get(
+                            "message",
+                            "Unknown forecast API error"
+                        )
+                    )
+
                     st.error(
-                        "Unable to fetch forecast data."
+                        f"❌ Forecast API Error: {error_message}"
                     )
 
 
+            # =====================================
+            # CURRENT WEATHER API ERROR
+            # =====================================
+
             else:
 
+                error_message = (
+                    current_data.get(
+                        "message",
+                        "Unknown API error"
+                    )
+                )
+
                 st.error(
-                    "❌ City not found. Please enter a valid city."
+                    f"❌ Weather API Error: {error_message}"
                 )
 
 
-        except requests.exceptions.RequestException:
+        # =====================================
+        # INTERNET / API CONNECTION ERROR
+        # =====================================
+
+        except requests.exceptions.RequestException as error:
 
             st.error(
-                "❌ Unable to connect to the weather service."
+                f"❌ Unable to connect to the weather service: {error}"
             )
 
+
+# =====================================
+# DEFAULT MESSAGE
+# =====================================
 
 else:
 
     st.info(
-        "👈 Enter a city name in the sidebar and click Get Weather "
-        "to view real-time weather data and predictions."
+        "👈 Enter a city name in the sidebar and click "
+        "'Get Weather' to view real-time weather data "
+        "and predictions."
     )
